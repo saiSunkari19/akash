@@ -29,26 +29,26 @@ var (
 	AddToScheme = SchemeBuilder.AddToScheme
 )
 
-// Create a  Rest client with the new CRD Schema
-var SchemeGroupVersion = schema.GroupVersion{Group: CRDGroup, Version: CRDVersion}
+// SchemaGroupVersion defines a GroupVersion which contains the "group" and the "version" and uniquely identifies the API.
+var SchemaGroupVersion = schema.GroupVersion{Group: CRDGroup, Version: CRDVersion}
 
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(SchemaGroupVersion,
 		&Manifest{},
 		&ManifestList{},
 	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+	metav1.AddToGroupVersion(scheme, SchemaGroupVersion)
 	return nil
 }
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind
 func Kind(kind string) schema.GroupKind {
-	return SchemeGroupVersion.WithKind(kind).GroupKind()
+	return SchemaGroupVersion.WithKind(kind).GroupKind()
 }
 
 // Resource takes an unqualified resource and returns a Group qualified GroupResource
 func Resource(resource string) schema.GroupResource {
-	return SchemeGroupVersion.WithResource(resource).GroupResource()
+	return SchemaGroupVersion.WithResource(resource).GroupResource()
 }
 
 // CreateCRD creates the CRD resource, ignore error if it already exists
