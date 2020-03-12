@@ -12,7 +12,7 @@ import (
 	mtypes "github.com/ovrclk/akash/x/market/types"
 )
 
-// Declaring new error with message "not running"
+// ErrNotRunning declares a new error with message "not running"
 var ErrNotRunning = errors.New("not running")
 
 // StatusClient interface predefined with Status method
