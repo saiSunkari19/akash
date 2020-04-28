@@ -19,11 +19,11 @@ The `master` branch is currently unstable as we migrate to [cosmos-sdk](https://
 
 Akash Suite is the reference implementation of the [Akash Protocol](https://akash.network/l/whitepaper). Akash is an actively-developed prototype currently focused on the distributed marketplace functionality.
 
-The Suite is composed of two applications: `akash` and `akashd`:
+The Suite is composed of two applications: `akashctl` and `akashd`:
 
 - `akashd` is the ([tendermint](https://github.com/tendermint/tendermint)-powered) blockchain node that
 implements the decentralized exchange.
-- `akash` is the client used to access the exchange and network
+- `akashctl` is the client used to access the exchange and network
 in general.
 
 ## Get Started with Akash
@@ -103,7 +103,7 @@ sudo pacman -Sy protobuf
 ```
 ### Akash Suite
 
-Download and build `akash` and `akashd`:
+Download and build `akashctl` and `akashd`:
 
 ```sh
 go get -d github.com/ovrclk/akash
