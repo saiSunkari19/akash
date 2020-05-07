@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -16,6 +17,7 @@ import (
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 	"github.com/rakyll/statik/fs"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ovrclk/akash/app"
 	"github.com/ovrclk/akash/cmd/common"
 	"github.com/spf13/cobra"
@@ -54,6 +56,7 @@ func main() {
 		keys.Commands(),
 		version.Cmd,
 		flags.NewCompletionCmd(root, true),
+		inspectAddressCommand(),
 	)
 
 	executor := cli.PrepareMainCmd(root, "AKASHCTL", common.DefaultCLIHome())
@@ -144,4 +147,26 @@ func initConfig(cmd *cobra.Command) error {
 		return err
 	}
 	return viper.BindPFlag(cli.OutputFlag, cmd.PersistentFlags().Lookup(cli.OutputFlag))
+}
+
+func inspectAddressCommand() *cobra.Command {
+	return &cobra.Command{
+		Use: "address-inspect [address]",
+		Run: func(_ *cobra.Command, args []string) {
+			for _, val := range args {
+				address, err := sdk.AccAddressFromBech32(val)
+				if err == nil {
+					fmt.Printf("%s\t %v\n", address, address)
+					continue
+				}
+				address, err = sdk.AccAddressFromHex(val)
+				if err == nil {
+					fmt.Printf("%s\t %v\n", address, address)
+					continue
+				}
+
+				fmt.Fprintf(os.Stderr, "[error] %v: %v\n", address, err)
+			}
+		},
+	}
 }
