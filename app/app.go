@@ -246,23 +246,23 @@ func NewApp(
 
 	// no-op handler for "cygni" upgrade
 	app.keeper.upgrade.SetUpgradeHandler("cygni", func(ctx sdk.Context, plan upgrade.Plan) {
-		faucetAddr, _ := sdk.AccAddressFromBech32("akash1czxh6ewhuy00tsv5zu50gz7lz2cxcpufdrarty")
-		delegatorAddr, _ := sdk.AccAddressFromBech32("akash1qdcgvqq4g20lwrdxj8x2rn79w9z7ra6tq64afa")
-		valAddr, _ := sdk.ValAddressFromBech32("akashvaloper1qdcgvqq4g20lwrdxj8x2rn79w9z7ra6t2cmmeh")
+		faucetAddr, _ := sdk.AccAddressFromBech32("akash19nlsm4cvnse8w3fdrzjg5wvtfd2jj282l3le5h")
+		delegatorAddr, _ := sdk.AccAddressFromBech32("akash196jadfcjwxss7ctu5c4ul6d3wcx660ljscp84y")
+		valAddr, _ := sdk.ValAddressFromBech32("akashvaloper196jadfcjwxss7ctu5c4ul6d3wcx660lj660p9w")
 
-		// mint remaining tokens to match with total initial supply, i.e., 100m
-		_, _ = app.keeper.bank.AddCoins(ctx, faucetAddr, sdk.Coins{sdk.Coin{Denom: "uakt", Amount: sdk.NewInt(69899000000000)}})
+		// mint remaining tokens to match with total initial supply, i.e., 1m
+		_, _ = app.keeper.bank.AddCoins(ctx, faucetAddr, sdk.Coins{sdk.Coin{Denom: "uakt", Amount: sdk.NewInt(999969412703)}})
 
-		// Set self delegation of "supermini" validator to match with other validators (i.e., 10AKT)
+		// Set self delegation of "supermini" validator to match with other validators (i.e., 10000AKT)
 		delegation := stakingTypes.Delegation{
 			DelegatorAddress: delegatorAddr,
 			ValidatorAddress: valAddr,
-			Shares:           sdk.NewDec(10000000),
+			Shares:           sdk.NewDec(10000000000),
 		}
 		app.keeper.staking.SetDelegation(ctx, delegation)
 
-		// Update minimum deposit to 1000000uakt
-		depositParams := gov.NewDepositParams(sdk.Coins{sdk.Coin{Denom: "uakt", Amount: sdk.NewInt(1000000)}}, 172800000000000)
+		// Update minimum deposit to 1000uakt
+		depositParams := gov.NewDepositParams(sdk.Coins{sdk.Coin{Denom: "uakt", Amount: sdk.NewInt(1000)}}, 172800000000000)
 		govSubspace, ok := app.keeper.params.GetSubspace(gov.DefaultParamspace)
 
 		if ok {
