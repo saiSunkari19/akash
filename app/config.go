@@ -21,9 +21,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
-	"github.com/ovrclk/akash/x/deployment"
-	"github.com/ovrclk/akash/x/market"
-	"github.com/ovrclk/akash/x/provider"
 )
 
 var (
@@ -58,9 +55,9 @@ var (
 		crisis.AppModuleBasic{},
 
 		// akash
-		deployment.AppModuleBasic{},
-		market.AppModuleBasic{},
-		provider.AppModuleBasic{},
+		// deployment.AppModuleBasic{},
+		// market.AppModuleBasic{},
+		// provider.AppModuleBasic{},
 	)
 )
 
@@ -96,9 +93,9 @@ func kvStoreKeys() map[string]*sdk.KVStoreKey {
 		gov.StoreKey,
 		upgrade.StoreKey,
 		evidence.StoreKey,
-		deployment.StoreKey,
-		market.StoreKey,
-		provider.StoreKey,
+		// deployment.StoreKey,
+		// market.StoreKey,
+		// provider.StoreKey,
 	)
 }
 
