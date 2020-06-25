@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"io"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
@@ -278,7 +279,10 @@ func NewApp(
 	)
 
 	app.mm.RegisterInvariants(&app.keeper.crisis)
-	app.mm.RegisterRoutes(app.Router(), app.QueryRouter())
+
+	appRouter := app.Router()
+	appRouter.AddRoute("appVersion", appVersionHandler)
+	app.mm.RegisterRoutes(appRouter, app.QueryRouter())
 
 	app.sm = module.NewSimulationManager(
 		auth.NewAppModule(app.keeper.acct),
@@ -362,4 +366,12 @@ func (app *AkashApp) SimulationManager() *module.SimulationManager {
 // LoadHeight method of AkashApp loads baseapp application version with given height
 func (app *AkashApp) LoadHeight(height int64) error {
 	return app.LoadVersion(height, app.keys[bam.MainStoreKey])
+}
+
+func appVersionHandler(_ sdk.Context, _ sdk.Msg) (*sdk.Result, error) {
+	verInfo := version.NewInfo()
+	v := fmt.Sprintf("Version: %s", verInfo.Version)
+	return &sdk.Result{
+		Log: v,
+	}, nil
 }
