@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
+	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 
 	"github.com/ovrclk/akash/provider"
 	"github.com/ovrclk/akash/provider/cluster"
@@ -26,6 +30,7 @@ type Client interface {
 	SubmitManifest(ctx context.Context, host string, req *manifest.SubmitRequest) error
 	LeaseStatus(ctx context.Context, host string, id mtypes.LeaseID) (*cluster.LeaseStatus, error)
 	ServiceStatus(ctx context.Context, host string, id mtypes.LeaseID, service string) (*cluster.ServiceStatus, error)
+	ServiceLogs(ctx context.Context, host string, id mtypes.LeaseID, service string, follow bool, tailLines *int64) (*cluster.ServiceLogs, error)
 }
 
 // NewClient returns a new Client
@@ -144,5 +149,88 @@ func makeURI(host string, path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return endpoint.String(), nil
+}
+
+func (c *client) ServiceLogs(ctx context.Context,
+	host string,
+	id mtypes.LeaseID,
+	service string,
+	follow bool,
+	tailLines *int64) (*cluster.ServiceLogs, error) {
+
+	type kv struct {
+		k string
+		v string
+	}
+
+	var query []kv
+
+	query = append(query, kv{
+		k: "follow",
+		v: strconv.FormatBool(follow),
+	})
+
+	if tailLines != nil {
+		query = append(query, kv{
+			k: "tail",
+			v: strconv.FormatInt(*tailLines, 10),
+		})
+	}
+
+	uri, err := makeURI(host, serviceLogsPath(id, service))
+	if err != nil {
+		return nil, err
+	}
+
+	for i, kv := range query {
+		if i == 0 {
+			uri += "?"
+		} else {
+			uri += "&"
+		}
+
+		uri += fmt.Sprintf("%s=%s", url.QueryEscape(kv.k), url.QueryEscape(kv.v))
+	}
+
+	conn, _, err := websocket.DefaultDialer.DialContext(ctx, uri, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// todo check status?
+
+	logs := &cluster.ServiceLogs{
+		Stream: make(chan cluster.ServiceLogMessage),
+	}
+
+	go func(conn *websocket.Conn) {
+		defer close(logs.Stream)
+
+		for {
+			_ = conn.SetReadDeadline(time.Now().Add(pingWait))
+			mType, msg, e := conn.ReadMessage()
+			if e != nil {
+				return
+			}
+
+			switch mType {
+			case websocket.PingMessage:
+				if e = conn.WriteMessage(websocket.PongMessage, []byte{}); e != nil {
+					return
+				}
+			case websocket.TextMessage:
+				var logLine cluster.ServiceLogMessage
+				if e = json.Unmarshal(msg, &logLine); e != nil {
+					return
+				}
+
+				logs.Stream <- logLine
+			default:
+			}
+		}
+	}(conn)
+
+	return logs, nil
 }

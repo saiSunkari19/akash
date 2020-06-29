@@ -29,8 +29,13 @@ type ServiceStatus struct {
 	AvailableReplicas  int32 `json:"available-replicas"`
 }
 
+type ServiceLogMessage struct {
+	Name    string `json:"name"`
+	Message string `json:"message"`
+}
+
 type ServiceLogs struct {
-	Name string `json:"name"`
+	Stream chan ServiceLogMessage
 }
 
 // LeaseStatus includes list of services with their status
