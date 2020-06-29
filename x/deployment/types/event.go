@@ -19,13 +19,13 @@ const (
 
 // EventDeploymentCreate struct
 type EventDeploymentCreate struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	ID                      DeploymentID `json:"id"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	ID      DeploymentID            `json:"id"`
 }
 
 func NewEventDeploymentCreate(id DeploymentID) EventDeploymentCreate {
 	return EventDeploymentCreate{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionDeploymentCreate,
 		},
@@ -45,14 +45,14 @@ func (ev EventDeploymentCreate) ToSDKEvent() sdk.Event {
 
 // EventDeploymentUpdate struct
 type EventDeploymentUpdate struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	ID                      DeploymentID `json:"id"`
-	Version                 []byte       `json:"version,omitempty"` // TODO
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	ID      DeploymentID            `json:"id"`
+	Version []byte                  `json:"version,omitempty"` // TODO
 }
 
 func NewEventDeploymentUpdate(id DeploymentID) EventDeploymentUpdate {
 	return EventDeploymentUpdate{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionDeploymentUpdate,
 		},
@@ -72,13 +72,13 @@ func (ev EventDeploymentUpdate) ToSDKEvent() sdk.Event {
 
 // EventDeploymentClose struct
 type EventDeploymentClose struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	ID                      DeploymentID `json:"id"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	ID      DeploymentID            `json:"id"`
 }
 
 func NewEventDeploymentClose(id DeploymentID) EventDeploymentClose {
 	return EventDeploymentClose{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionDeploymentClose,
 		},
@@ -123,13 +123,13 @@ func ParseEVDeploymentID(attrs []sdk.Attribute) (DeploymentID, error) {
 
 // EventGroupClose provides SDK event to signal group termination
 type EventGroupClose struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	ID                      GroupID `json:"id"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	ID      GroupID                 `json:"id"`
 }
 
 func NewEventGroupClose(id GroupID) EventGroupClose {
 	return EventGroupClose{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionGroupClose,
 		},

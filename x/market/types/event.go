@@ -30,13 +30,13 @@ var (
 
 // EventOrderCreated struct
 type EventOrderCreated struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	ID                      OrderID `json:"id"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	ID      OrderID                 `json:"id"`
 }
 
 func NewEventOrderCreated(id OrderID) EventOrderCreated {
 	return EventOrderCreated{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionOrderCreated,
 		},
@@ -56,13 +56,13 @@ func (e EventOrderCreated) ToSDKEvent() sdk.Event {
 
 // EventOrderClosed struct
 type EventOrderClosed struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	ID                      OrderID `json:"id"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	ID      OrderID                 `json:"id"`
 }
 
 func NewEventOrderClosed(id OrderID) EventOrderClosed {
 	return EventOrderClosed{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionOrderClosed,
 		},
@@ -82,14 +82,14 @@ func (e EventOrderClosed) ToSDKEvent() sdk.Event {
 
 // EventBidCreated struct
 type EventBidCreated struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	ID                      BidID    `json:"id"`
-	Price                   sdk.Coin `json:"price"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	ID      BidID                   `json:"id"`
+	Price   sdk.Coin                `json:"price"`
 }
 
 func NewEventBidCreated(id BidID, price sdk.Coin) EventBidCreated {
 	return EventBidCreated{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionBidCreated,
 		},
@@ -112,14 +112,14 @@ func (e EventBidCreated) ToSDKEvent() sdk.Event {
 
 // EventBidClosed struct
 type EventBidClosed struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	ID                      BidID    `json:"id"`
-	Price                   sdk.Coin `json:"price"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	ID      BidID                   `json:"id"`
+	Price   sdk.Coin                `json:"price"`
 }
 
 func NewEventBidClosed(id BidID, price sdk.Coin) EventBidClosed {
 	return EventBidClosed{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionBidClosed,
 		},
@@ -142,14 +142,14 @@ func (e EventBidClosed) ToSDKEvent() sdk.Event {
 
 // EventLeaseCreated struct
 type EventLeaseCreated struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	ID                      LeaseID  `json:"id"`
-	Price                   sdk.Coin `json:"price"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	ID      LeaseID                 `json:"id"`
+	Price   sdk.Coin                `json:"price"`
 }
 
 func NewEventLeaseCreated(id LeaseID, price sdk.Coin) EventLeaseCreated {
 	return EventLeaseCreated{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionLeaseCreated,
 		},
@@ -171,14 +171,14 @@ func (e EventLeaseCreated) ToSDKEvent() sdk.Event {
 
 // EventLeaseClosed struct
 type EventLeaseClosed struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	ID                      LeaseID  `json:"id"`
-	Price                   sdk.Coin `json:"price"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	ID      LeaseID                 `json:"id"`
+	Price   sdk.Coin                `json:"price"`
 }
 
 func NewEventLeaseClosed(id LeaseID, price sdk.Coin) EventLeaseClosed {
 	return EventLeaseClosed{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionLeaseClosed,
 		},

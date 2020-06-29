@@ -14,13 +14,13 @@ const (
 
 // EventProviderCreate struct
 type EventProviderCreate struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	Owner                   sdk.AccAddress `json:"owner"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	Owner   sdk.AccAddress          `json:"owner"`
 }
 
 func NewEventProviderCreate(owner sdk.AccAddress) EventProviderCreate {
 	return EventProviderCreate{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionProviderCreate,
 		},
@@ -40,13 +40,13 @@ func (ev EventProviderCreate) ToSDKEvent() sdk.Event {
 
 // EventProviderUpdate struct
 type EventProviderUpdate struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	Owner                   sdk.AccAddress `json:"owner"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	Owner   sdk.AccAddress          `json:"owner"`
 }
 
 func NewEventProviderUpdate(owner sdk.AccAddress) EventProviderUpdate {
 	return EventProviderUpdate{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionProviderUpdate,
 		},
@@ -66,13 +66,13 @@ func (ev EventProviderUpdate) ToSDKEvent() sdk.Event {
 
 // EventProviderDelete struct
 type EventProviderDelete struct {
-	sdkutil.BaseModuleEvent `json:",inline"`
-	Owner                   sdk.AccAddress `json:"owner"`
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	Owner   sdk.AccAddress          `json:"owner"`
 }
 
 func NewEventProviderDelete(owner sdk.AccAddress) EventProviderDelete {
 	return EventProviderDelete{
-		BaseModuleEvent: sdkutil.BaseModuleEvent{
+		Context: sdkutil.BaseModuleEvent{
 			Module: ModuleName,
 			Action: evActionProviderDelete,
 		},
