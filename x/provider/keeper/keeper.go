@@ -3,7 +3,7 @@ package keeper
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
+	
 	"github.com/ovrclk/akash/x/provider/types"
 )
 
@@ -30,11 +30,11 @@ func (k Keeper) Codec() *codec.Codec {
 func (k Keeper) Get(ctx sdk.Context, id sdk.Address) (types.Provider, bool) {
 	store := ctx.KVStore(k.skey)
 	key := providerKey(id)
-
+	
 	if !store.Has(key) {
 		return types.Provider{}, false
 	}
-
+	
 	buf := store.Get(key)
 	var val types.Provider
 	k.cdc.MustUnmarshalBinaryBare(buf, &val)
@@ -45,17 +45,17 @@ func (k Keeper) Get(ctx sdk.Context, id sdk.Address) (types.Provider, bool) {
 func (k Keeper) Create(ctx sdk.Context, provider types.Provider) error {
 	store := ctx.KVStore(k.skey)
 	key := providerKey(provider.Owner)
-
+	
 	if store.Has(key) {
 		return types.ErrProviderExists
 	}
-
+	
 	store.Set(key, k.cdc.MustMarshalBinaryBare(provider))
-
+	
 	ctx.EventManager().EmitEvent(
 		types.EventProviderCreate{Owner: provider.Owner}.ToSDKEvent(),
 	)
-
+	
 	return nil
 }
 
@@ -76,16 +76,16 @@ func (k Keeper) WithProviders(ctx sdk.Context, fn func(types.Provider) bool) {
 func (k Keeper) Update(ctx sdk.Context, provider types.Provider) error {
 	store := ctx.KVStore(k.skey)
 	key := providerKey(provider.Owner)
-
+	
 	if !store.Has(key) {
 		return types.ErrProviderNotFound
 	}
 	store.Set(key, k.cdc.MustMarshalBinaryBare(provider))
-
+	
 	ctx.EventManager().EmitEvent(
 		types.EventProviderUpdate{Owner: provider.Owner}.ToSDKEvent(),
 	)
-
+	
 	return nil
 }
 

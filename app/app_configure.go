@@ -4,6 +4,7 @@ package app
 
 import (
 	"github.com/cosmos/cosmos-sdk/types/module"
+	
 	"github.com/ovrclk/akash/x/deployment"
 	"github.com/ovrclk/akash/x/market"
 	"github.com/ovrclk/akash/x/provider"
@@ -30,12 +31,12 @@ func (app *AkashApp) setAkashKeepers() {
 		app.cdc,
 		app.keys[deployment.StoreKey],
 	)
-
+	
 	app.keeper.market = market.NewKeeper(
 		app.cdc,
 		app.keys[market.StoreKey],
 	)
-
+	
 	app.keeper.provider = provider.NewKeeper(
 		app.cdc,
 		app.keys[provider.StoreKey],
@@ -49,14 +50,14 @@ func (app *AkashApp) akashAppModules() []module.AppModule {
 			app.keeper.market,
 			app.keeper.bank,
 		),
-
+		
 		market.NewAppModule(
 			app.keeper.market,
 			app.keeper.deployment,
 			app.keeper.provider,
 			app.keeper.bank,
 		),
-
+		
 		provider.NewAppModule(app.keeper.provider, app.keeper.bank, app.keeper.market),
 	}
 }
@@ -68,6 +69,14 @@ func (app *AkashApp) akashEndBlockModules() []string {
 }
 
 func (app *AkashApp) akashInitGenesisOrder() []string {
+	return []string{
+		deployment.ModuleName,
+		provider.ModuleName,
+		market.ModuleName,
+	}
+}
+
+func (app *AkashApp) akashExportGenesis() []string {
 	return []string{
 		deployment.ModuleName,
 		provider.ModuleName,

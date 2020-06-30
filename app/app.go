@@ -2,7 +2,7 @@ package app
 
 import (
 	"io"
-
+	
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/simapp"
@@ -16,20 +16,20 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
-
+	
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/staking"
-
+	
 	"github.com/ovrclk/akash/x/deployment"
 	"github.com/ovrclk/akash/x/market"
 	"github.com/ovrclk/akash/x/provider"
-
+	
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
-
+	
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmos "github.com/tendermint/tendermint/libs/os"
-
+	
 	"github.com/cosmos/cosmos-sdk/version"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
@@ -44,12 +44,12 @@ const (
 type AkashApp struct {
 	*bam.BaseApp
 	cdc *codec.Codec
-
+	
 	invCheckPeriod uint
-
+	
 	keys  map[string]*sdk.KVStoreKey
 	tkeys map[string]*sdk.TransientStoreKey
-
+	
 	keeper struct {
 		acct       auth.AccountKeeper
 		bank       bank.Keeper
@@ -67,9 +67,9 @@ type AkashApp struct {
 		market     market.Keeper
 		provider   provider.Keeper
 	}
-
+	
 	mm *module.Manager
-
+	
 	// simulation manager
 	sm *module.SimulationManager
 }
@@ -79,16 +79,16 @@ type AkashApp struct {
 func NewApp(
 	logger log.Logger, db dbm.DB, tio io.Writer, invCheckPeriod uint, skipUpgradeHeights map[int64]bool, options ...func(*bam.BaseApp),
 ) *AkashApp {
-
+	
 	cdc := MakeCodec()
-
+	
 	bapp := bam.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(cdc), options...)
 	bapp.SetCommitMultiStoreTracer(tio)
 	bapp.SetAppVersion(version.Version)
-
+	
 	keys := kvStoreKeys()
 	tkeys := transientStoreKeys()
-
+	
 	app := &AkashApp{
 		BaseApp:        bapp,
 		cdc:            cdc,
@@ -96,26 +96,26 @@ func NewApp(
 		keys:           keys,
 		tkeys:          tkeys,
 	}
-
+	
 	app.keeper.params = params.NewKeeper(
 		app.cdc,
 		app.keys[params.StoreKey],
 		app.tkeys[params.TStoreKey],
 	)
-
+	
 	app.keeper.acct = auth.NewAccountKeeper(
 		app.cdc,
 		app.keys[auth.StoreKey],
 		app.keeper.params.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount,
 	)
-
+	
 	app.keeper.bank = bank.NewBaseKeeper(
 		app.keeper.acct,
 		app.keeper.params.Subspace(bank.DefaultParamspace),
 		macAddrs(),
 	)
-
+	
 	app.keeper.supply = supply.NewKeeper(
 		app.cdc,
 		app.keys[supply.StoreKey],
@@ -123,14 +123,14 @@ func NewApp(
 		app.keeper.bank,
 		macPerms(),
 	)
-
+	
 	skeeper := staking.NewKeeper(
 		app.cdc,
 		app.keys[staking.StoreKey],
 		app.keeper.supply,
 		app.keeper.params.Subspace(staking.DefaultParamspace),
 	)
-
+	
 	app.keeper.distr = distr.NewKeeper(
 		app.cdc,
 		app.keys[distr.StoreKey],
@@ -140,21 +140,21 @@ func NewApp(
 		auth.FeeCollectorName,
 		macAddrs(),
 	)
-
+	
 	app.keeper.slashing = slashing.NewKeeper(
 		app.cdc,
 		app.keys[slashing.StoreKey],
 		&skeeper,
 		app.keeper.params.Subspace(slashing.DefaultParamspace),
 	)
-
+	
 	app.keeper.staking = *skeeper.SetHooks(
 		staking.NewMultiStakingHooks(
 			app.keeper.distr.Hooks(),
 			app.keeper.slashing.Hooks(),
 		),
 	)
-
+	
 	app.keeper.mint = mint.NewKeeper(
 		app.cdc,
 		app.keys[mint.StoreKey],
@@ -163,16 +163,16 @@ func NewApp(
 		app.keeper.supply,
 		auth.FeeCollectorName,
 	)
-
+	
 	app.keeper.upgrade = upgrade.NewKeeper(skipUpgradeHeights, app.keys[upgrade.StoreKey], app.cdc)
-
+	
 	app.keeper.crisis = crisis.NewKeeper(
 		app.keeper.params.Subspace(crisis.DefaultParamspace),
 		app.invCheckPeriod,
 		app.keeper.supply,
 		auth.FeeCollectorName,
 	)
-
+	
 	// create evidence keeper with evidence router
 	evidenceKeeper := evidence.NewKeeper(
 		app.cdc, app.keys[evidence.StoreKey],
@@ -181,18 +181,18 @@ func NewApp(
 		app.keeper.slashing,
 	)
 	evidenceRouter := evidence.NewRouter()
-
+	
 	evidenceKeeper.SetRouter(evidenceRouter)
-
+	
 	app.keeper.evidence = *evidenceKeeper
-
+	
 	// register the proposal types
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(app.keeper.params)).
 		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.keeper.distr)).
 		AddRoute(upgrade.RouterKey, upgrade.NewSoftwareUpgradeProposalHandler(app.keeper.upgrade))
-
+	
 	app.keeper.gov = gov.NewKeeper(
 		app.cdc,
 		app.keys[gov.StoreKey],
@@ -201,9 +201,9 @@ func NewApp(
 		&skeeper,
 		govRouter,
 	)
-
+	
 	app.setAkashKeepers()
-
+	
 	app.mm = module.NewManager(
 		append([]module.AppModule{
 			genutil.NewAppModule(app.keeper.acct, app.keeper.staking, app.BaseApp.DeliverTx),
@@ -219,11 +219,11 @@ func NewApp(
 			evidence.NewAppModule(app.keeper.evidence),
 			crisis.NewAppModule(&app.keeper.crisis),
 		},
-
+			
 			app.akashAppModules()...,
 		)...,
 	)
-
+	
 	app.mm.SetOrderBeginBlockers(upgrade.ModuleName, mint.ModuleName, distr.ModuleName, slashing.ModuleName, evidence.ModuleName)
 	app.mm.SetOrderEndBlockers(
 		append([]string{
@@ -231,7 +231,7 @@ func NewApp(
 			app.akashEndBlockModules()...,
 		)...,
 	)
-
+	
 	// NOTE: The genutils module must occur after staking so that pools are
 	//       properly initialized with tokens from genesis accounts.
 	app.mm.SetOrderInitGenesis(
@@ -248,14 +248,14 @@ func NewApp(
 			genutil.ModuleName,
 			evidence.ModuleName,
 		},
-
+			
 			app.akashInitGenesisOrder()...,
 		)...,
 	)
-
+	
 	app.mm.RegisterInvariants(&app.keeper.crisis)
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter())
-
+	
 	app.sm = module.NewSimulationManager(
 		append([]module.AppModuleSimulation{
 			auth.NewAppModule(app.keeper.acct),
@@ -270,17 +270,17 @@ func NewApp(
 			app.akashSimModules()...,
 		)...,
 	)
-
+	
 	app.sm.RegisterStoreDecoders()
-
+	
 	// initialize stores
 	app.MountKVStores(keys)
 	app.MountTransientStores(tkeys)
-
+	
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-
+	
 	app.SetAnteHandler(
 		auth.NewAnteHandler(
 			app.keeper.acct,
@@ -288,14 +288,14 @@ func NewApp(
 			auth.DefaultSigVerificationGasConsumer,
 		),
 	)
-
+	
 	app.SetEndBlocker(app.EndBlocker)
-
+	
 	err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 	if err != nil {
 		tmos.Exit("app initialization:" + err.Error())
 	}
-
+	
 	return app
 }
 
@@ -304,7 +304,7 @@ func (app *AkashApp) InitChainer(
 	ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
-
+	
 	return app.mm.InitGenesis(ctx, genesisState)
 }
 
