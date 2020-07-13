@@ -101,7 +101,6 @@ func cmdCreate(key string, cdc *codec.Codec) *cobra.Command {
 				msgs = append(msgs, msg)
 			}
 			
-			fmt.Println("MSGS", len(msgs))
 			return utils.GenerateOrBroadcastMsgs(ctx, bldr, msgs)
 		},
 	}
