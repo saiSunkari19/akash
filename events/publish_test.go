@@ -15,22 +15,23 @@ import (
 func Test_processEvent(t *testing.T) {
 	tests := []sdkutil.ModuleEvent{
 		// x/deployment events
-		dtypes.EventDeploymentCreate{ID: testutil.DeploymentID(t)},
-		dtypes.EventDeploymentUpdate{ID: testutil.DeploymentID(t)},
-		dtypes.EventDeploymentClose{ID: testutil.DeploymentID(t)},
+		dtypes.NewEventDeploymentCreated(testutil.DeploymentID(t)),
+		dtypes.NewEventDeploymentUpdated(testutil.DeploymentID(t)),
+		dtypes.NewEventDeploymentClosed(testutil.DeploymentID(t)),
+		dtypes.NewEventGroupClosed(testutil.GroupID(t)),
 
 		// x/market events
-		mtypes.EventOrderCreated{ID: testutil.OrderID(t)},
-		mtypes.EventOrderClosed{ID: testutil.OrderID(t)},
-		mtypes.EventBidCreated{ID: testutil.BidID(t), Price: testutil.Coin(t)},
-		mtypes.EventBidClosed{ID: testutil.BidID(t), Price: testutil.Coin(t)},
-		mtypes.EventLeaseCreated{ID: testutil.LeaseID(t), Price: testutil.Coin(t)},
-		mtypes.EventLeaseClosed{ID: testutil.LeaseID(t), Price: testutil.Coin(t)},
+		mtypes.NewEventOrderCreated(testutil.OrderID(t)),
+		mtypes.NewEventOrderClosed(testutil.OrderID(t)),
+		mtypes.NewEventBidCreated(testutil.BidID(t), testutil.Coin(t)),
+		mtypes.NewEventBidClosed(testutil.BidID(t), testutil.Coin(t)),
+		mtypes.NewEventLeaseCreated(testutil.LeaseID(t), testutil.Coin(t)),
+		mtypes.NewEventLeaseClosed(testutil.LeaseID(t), testutil.Coin(t)),
 
 		// x/provider events
-		ptypes.EventProviderCreate{Owner: testutil.AccAddress(t)},
-		ptypes.EventProviderUpdate{Owner: testutil.AccAddress(t)},
-		ptypes.EventProviderDelete{Owner: testutil.AccAddress(t)},
+		ptypes.NewEventProviderCreated(testutil.AccAddress(t)),
+		ptypes.NewEventProviderUpdated(testutil.AccAddress(t)),
+		ptypes.NewEventProviderDeleted(testutil.AccAddress(t)),
 	}
 
 	for _, test := range tests {

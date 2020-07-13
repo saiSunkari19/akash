@@ -2,16 +2,9 @@ package keeper
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/pkg/errors"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/ovrclk/akash/x/deployment/types"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-)
-
-var (
-	ErrDeploymentAlreadyExists = errors.New("keeper: deployment already exists")
-	ErrDeploymentNotFound      = errors.New("keeper: deployment not found")
 )
 
 // Keeper of the deployment store
@@ -90,6 +83,27 @@ func (k Keeper) GetGroups(ctx sdk.Context, id types.DeploymentID) []types.Group 
 	return vals
 }
 
+// getOpenGroups returns all *open* groups of a deployment with given DeploymentID.
+func (k Keeper) getOpenGroups(ctx sdk.Context, id types.DeploymentID) []types.Group {
+	store := ctx.KVStore(k.skey)
+	key := groupsOpenKey(id)
+
+	var vals []types.Group
+	iter := sdk.KVStorePrefixIterator(store, key)
+	for ; iter.Valid(); iter.Next() {
+		gkey, _ := groupOpenKeyConvert(iter.Key())
+
+		buf := store.Get(gkey)
+		var val types.Group
+		k.cdc.MustUnmarshalBinaryBare(buf, &val)
+		if err := val.ValidateOrderable(); err == nil {
+			vals = append(vals, val)
+		}
+	}
+	iter.Close()
+	return vals
+}
+
 // Create creates a new deployment with given deployment and group specifications
 func (k Keeper) Create(ctx sdk.Context, deployment types.Deployment, groups []types.Group) error {
 	store := ctx.KVStore(k.skey)
@@ -97,7 +111,7 @@ func (k Keeper) Create(ctx sdk.Context, deployment types.Deployment, groups []ty
 	key := deploymentKey(deployment.ID())
 
 	if store.Has(key) {
-		return ErrDeploymentAlreadyExists
+		return types.ErrDeploymentExists
 	}
 
 	store.Set(key, k.cdc.MustMarshalBinaryBare(deployment))
@@ -108,10 +122,12 @@ func (k Keeper) Create(ctx sdk.Context, deployment types.Deployment, groups []ty
 		}
 		gkey := groupKey(group.ID())
 		store.Set(gkey, k.cdc.MustMarshalBinaryBare(group))
+		k.updateOpenGroupsIndex(ctx, group)
 	}
 
 	ctx.EventManager().EmitEvent(
-		types.EventDeploymentCreate{ID: deployment.ID()}.ToSDKEvent(),
+		types.NewEventDeploymentCreated(deployment.ID()).
+			ToSDKEvent(),
 	)
 
 	return nil
@@ -123,14 +139,35 @@ func (k Keeper) UpdateDeployment(ctx sdk.Context, deployment types.Deployment) e
 	key := deploymentKey(deployment.ID())
 
 	if !store.Has(key) {
-		return ErrDeploymentNotFound
+		return types.ErrDeploymentNotFound
 	}
 
 	ctx.EventManager().EmitEvent(
-		types.EventDeploymentUpdate{ID: deployment.ID()}.ToSDKEvent(),
+		types.NewEventDeploymentUpdated(deployment.ID()).
+			ToSDKEvent(),
 	)
 
 	store.Set(key, k.cdc.MustMarshalBinaryBare(deployment))
+	return nil
+}
+
+// OnCloseGroup provides shutdown API for a Group
+func (k Keeper) OnCloseGroup(ctx sdk.Context, group types.Group) error {
+	store := ctx.KVStore(k.skey)
+	key := groupKey(group.ID())
+
+	if !store.Has(key) {
+		return types.ErrGroupNotFound
+	}
+	group.State = types.GroupClosed
+
+	ctx.EventManager().EmitEvent(
+		types.NewEventGroupClosed(group.ID()).
+			ToSDKEvent(),
+	)
+
+	store.Set(key, k.cdc.MustMarshalBinaryBare(group))
+	k.updateOpenGroupsIndex(ctx, group)
 	return nil
 }
 
@@ -157,6 +194,24 @@ func (k Keeper) WithDeploymentsActive(ctx sdk.Context, fn func(types.Deployment)
 		if val.State != types.DeploymentActive {
 			continue
 		}
+		if stop := fn(val); stop {
+			break
+		}
+	}
+}
+
+// WithOpenGroups filters to only those with State: Open
+func (k Keeper) WithOpenGroups(ctx sdk.Context, fn func(types.Group) bool) {
+	store := ctx.KVStore(k.skey)
+	iter := sdk.KVStorePrefixIterator(store, groupOpenPrefix)
+	for ; iter.Valid(); iter.Next() {
+		gKey, err := groupOpenKeyConvert(iter.Key())
+		if err != nil {
+			continue
+		}
+		buf := store.Get(gKey)
+		var val types.Group
+		k.cdc.MustUnmarshalBinaryBare(buf, &val)
 		if stop := fn(val); stop {
 			break
 		}
@@ -201,10 +256,31 @@ func (k Keeper) OnDeploymentClosed(ctx sdk.Context, group types.Group) {
 	}
 	group.State = types.GroupClosed
 	k.updateGroup(ctx, group)
+
+	ctx.EventManager().EmitEvent(
+		types.NewEventDeploymentClosed(group.DeploymentID()).
+			ToSDKEvent(),
+	)
 }
 
 func (k Keeper) updateGroup(ctx sdk.Context, group types.Group) {
 	store := ctx.KVStore(k.skey)
 	key := groupKey(group.ID())
+
 	store.Set(key, k.cdc.MustMarshalBinaryBare(group))
+	k.updateOpenGroupsIndex(ctx, group)
+}
+
+// updateOpenGroupsIndex wraps all calls to the index which tracks open Groups.
+func (k Keeper) updateOpenGroupsIndex(ctx sdk.Context, group types.Group) {
+	// Update the Open Groups prefixed index
+	store := ctx.KVStore(k.skey)
+	openKey := groupOpenKey(group.ID())
+
+	switch group.State {
+	case types.GroupOpen:
+		store.Set(openKey, []byte{})
+	default:
+		store.Delete(openKey)
+	}
 }

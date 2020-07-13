@@ -1,7 +1,7 @@
 package types
 
 import (
-	"fmt"
+	"strconv"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -12,9 +12,7 @@ import (
 )
 
 var (
-	keyAcc, _ = sdk.AccAddressFromBech32("akash1qtqpdszzakz7ugkey7ka2cmss95z26ygar2mgr")
-	//keyParams = sdk.NewKVStoreKey(params.StoreKey)
-
+	keyAcc, _   = sdk.AccAddressFromBech32("akash1qtqpdszzakz7ugkey7ka2cmss95z26ygar2mgr")
 	errWildcard = errors.New("wildcard string error can't be matched")
 )
 
@@ -78,7 +76,7 @@ var TEPS = []testEventParsing{
 		msg: sdkutil.Event{
 			Type:   sdkutil.EventTypeMessage,
 			Module: ModuleName,
-			Action: evActionDeploymentCreate,
+			Action: evActionDeploymentCreated,
 			Attributes: []sdk.Attribute{
 				{
 					Key:   evOwnerKey,
@@ -96,7 +94,7 @@ var TEPS = []testEventParsing{
 		msg: sdkutil.Event{
 			Type:   sdkutil.EventTypeMessage,
 			Module: ModuleName,
-			Action: evActionDeploymentCreate,
+			Action: evActionDeploymentCreated,
 			Attributes: []sdk.Attribute{
 				{
 					Key:   evOwnerKey,
@@ -114,7 +112,7 @@ var TEPS = []testEventParsing{
 		msg: sdkutil.Event{
 			Type:   sdkutil.EventTypeMessage,
 			Module: ModuleName,
-			Action: evActionDeploymentCreate,
+			Action: evActionDeploymentCreated,
 			Attributes: []sdk.Attribute{
 				{
 					Key:   evOwnerKey,
@@ -129,7 +127,7 @@ var TEPS = []testEventParsing{
 		msg: sdkutil.Event{
 			Type:   sdkutil.EventTypeMessage,
 			Module: ModuleName,
-			Action: evActionDeploymentUpdate,
+			Action: evActionDeploymentUpdated,
 			Attributes: []sdk.Attribute{
 				{
 					Key:   evOwnerKey,
@@ -147,7 +145,65 @@ var TEPS = []testEventParsing{
 		msg: sdkutil.Event{
 			Type:   sdkutil.EventTypeMessage,
 			Module: ModuleName,
-			Action: evActionDeploymentUpdate,
+			Action: evActionGroupClosed,
+			Attributes: []sdk.Attribute{
+				{
+					Key:   evOwnerKey,
+					Value: keyAcc.String(),
+				},
+				{
+					Key:   evDSeqKey,
+					Value: "5",
+				},
+				{
+					Key:   evGSeqKey,
+					Value: "1",
+				},
+			},
+		},
+		expErr: nil,
+	},
+	{
+		msg: sdkutil.Event{
+			Type:   sdkutil.EventTypeMessage,
+			Module: ModuleName,
+			Action: evActionGroupClosed,
+			Attributes: []sdk.Attribute{
+				{
+					Key:   evOwnerKey,
+					Value: keyAcc.String(),
+				},
+				{
+					Key:   evDSeqKey,
+					Value: "5",
+				},
+			},
+		},
+		expErr: errWildcard,
+	},
+	{
+		msg: sdkutil.Event{
+			Type:   sdkutil.EventTypeMessage,
+			Module: ModuleName,
+			Action: evActionGroupClosed,
+			Attributes: []sdk.Attribute{
+				{
+					Key:   evOwnerKey,
+					Value: keyAcc.String(),
+				},
+				{
+					Key:   evGSeqKey,
+					Value: "1",
+				},
+			},
+		},
+		expErr: errWildcard,
+	},
+	{
+		msg: sdkutil.Event{
+			Type:   sdkutil.EventTypeMessage,
+			Module: ModuleName,
+			Action: evActionDeploymentUpdated,
 			Attributes: []sdk.Attribute{
 				{
 					Key:   evOwnerKey,
@@ -165,7 +221,7 @@ var TEPS = []testEventParsing{
 		msg: sdkutil.Event{
 			Type:   sdkutil.EventTypeMessage,
 			Module: ModuleName,
-			Action: evActionDeploymentUpdate,
+			Action: evActionDeploymentUpdated,
 			Attributes: []sdk.Attribute{
 				{
 					Key:   evOwnerKey,
@@ -179,7 +235,6 @@ var TEPS = []testEventParsing{
 
 func TestEventParsing(t *testing.T) {
 	for i, test := range TEPS {
-		t.Run(fmt.Sprintf("%d", i),
-			test.testMessageType())
+		t.Run(strconv.Itoa(i), test.testMessageType())
 	}
 }

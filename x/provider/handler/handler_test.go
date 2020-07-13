@@ -79,9 +79,9 @@ func TestProviderCreate(t *testing.T) {
 	t.Run("ensure event created", func(t *testing.T) {
 
 		iev := testutil.ParseProviderEvent(t, res.Events)
-		require.IsType(t, types.EventProviderCreate{}, iev)
+		require.IsType(t, types.EventProviderCreated{}, iev)
 
-		dev := iev.(types.EventProviderCreate)
+		dev := iev.(types.EventProviderCreated)
 
 		require.Equal(t, msg.Owner, dev.Owner)
 	})
@@ -90,6 +90,47 @@ func TestProviderCreate(t *testing.T) {
 	require.Nil(t, res)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, types.ErrProviderExists))
+}
+
+func TestProviderCreateWithDuplicated(t *testing.T) {
+	suite := setupTestSuite(t)
+
+	msg := types.MsgCreateProvider{
+		Owner:      testutil.AccAddress(t),
+		HostURI:    testutil.Hostname(t),
+		Attributes: testutil.Attributes(t),
+	}
+
+	msg.Attributes = append(msg.Attributes, msg.Attributes[0])
+
+	res, err := suite.handler(suite.ctx, msg)
+	require.Nil(t, res)
+	require.EqualError(t, err, types.ErrDuplicateAttributes.Error())
+}
+
+func TestProviderUpdateWithDuplicated(t *testing.T) {
+	suite := setupTestSuite(t)
+
+	createMsg := types.MsgCreateProvider{
+		Owner:      testutil.AccAddress(t),
+		HostURI:    testutil.Hostname(t),
+		Attributes: testutil.Attributes(t),
+	}
+
+	updateMsg := types.MsgUpdateProvider{
+		Owner:      createMsg.Owner,
+		HostURI:    testutil.Hostname(t),
+		Attributes: createMsg.Attributes,
+	}
+
+	updateMsg.Attributes = append(updateMsg.Attributes, updateMsg.Attributes[0])
+
+	err := suite.keeper.Create(suite.ctx, types.Provider(createMsg))
+	require.NoError(t, err)
+
+	res, err := suite.handler(suite.ctx, updateMsg)
+	require.Nil(t, res)
+	require.EqualError(t, err, types.ErrDuplicateAttributes.Error())
 }
 
 func TestProviderUpdateExisting(t *testing.T) {
@@ -117,9 +158,9 @@ func TestProviderUpdateExisting(t *testing.T) {
 	t.Run("ensure event created", func(t *testing.T) {
 
 		iev := testutil.ParseProviderEvent(t, res.Events[1:])
-		require.IsType(t, types.EventProviderUpdate{}, iev)
+		require.IsType(t, types.EventProviderUpdated{}, iev)
 
-		dev := iev.(types.EventProviderUpdate)
+		dev := iev.(types.EventProviderUpdated)
 
 		require.Equal(t, updateMsg.Owner, dev.Owner)
 	})
@@ -183,9 +224,9 @@ func TestProviderUpdateAttributes(t *testing.T) {
 	t.Run("ensure event created", func(t *testing.T) {
 
 		iev := testutil.ParseProviderEvent(t, res.Events[4:])
-		require.IsType(t, types.EventProviderUpdate{}, iev)
+		require.IsType(t, types.EventProviderUpdated{}, iev)
 
-		dev := iev.(types.EventProviderUpdate)
+		dev := iev.(types.EventProviderUpdated)
 
 		require.Equal(t, updateMsg.Owner, dev.Owner)
 	})

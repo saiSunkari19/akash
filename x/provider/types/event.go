@@ -6,53 +6,86 @@ import (
 )
 
 const (
-	evActionProviderCreate = "provider-create"
-	evActionProviderUpdate = "provider-update"
-	evActionProviderDelete = "provider-delete"
-	evOwnerKey             = "owner"
+	evActionProviderCreated = "provider-created"
+	evActionProviderUpdated = "provider-updated"
+	evActionProviderDeleted = "provider-deleted"
+	evOwnerKey              = "owner"
 )
 
-// EventProviderCreate struct
-type EventProviderCreate struct {
-	Owner sdk.AccAddress
+// EventProviderCreated struct
+type EventProviderCreated struct {
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	Owner   sdk.AccAddress          `json:"owner"`
 }
 
-// ToSDKEvent method creates new sdk event for EventProviderCreate struct
-func (ev EventProviderCreate) ToSDKEvent() sdk.Event {
+func NewEventProviderCreated(owner sdk.AccAddress) EventProviderCreated {
+	return EventProviderCreated{
+		Context: sdkutil.BaseModuleEvent{
+			Module: ModuleName,
+			Action: evActionProviderCreated,
+		},
+		Owner: owner,
+	}
+}
+
+// ToSDKEvent method creates new sdk event for EventProviderCreated struct
+func (ev EventProviderCreated) ToSDKEvent() sdk.Event {
 	return sdk.NewEvent(sdkutil.EventTypeMessage,
 		append([]sdk.Attribute{
 			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
-			sdk.NewAttribute(sdk.AttributeKeyAction, evActionProviderCreate),
+			sdk.NewAttribute(sdk.AttributeKeyAction, evActionProviderCreated),
 		}, ProviderEVAttributes(ev.Owner)...)...,
 	)
 }
 
-// EventProviderUpdate struct
-type EventProviderUpdate struct {
-	Owner sdk.AccAddress
+// EventProviderUpdated struct
+type EventProviderUpdated struct {
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	Owner   sdk.AccAddress          `json:"owner"`
 }
 
-// ToSDKEvent method creates new sdk event for EventProviderUpdate struct
-func (ev EventProviderUpdate) ToSDKEvent() sdk.Event {
+func NewEventProviderUpdated(owner sdk.AccAddress) EventProviderUpdated {
+	return EventProviderUpdated{
+		Context: sdkutil.BaseModuleEvent{
+			Module: ModuleName,
+			Action: evActionProviderUpdated,
+		},
+		Owner: owner,
+	}
+}
+
+// ToSDKEvent method creates new sdk event for EventProviderUpdated struct
+func (ev EventProviderUpdated) ToSDKEvent() sdk.Event {
 	return sdk.NewEvent(sdkutil.EventTypeMessage,
 		append([]sdk.Attribute{
 			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
-			sdk.NewAttribute(sdk.AttributeKeyAction, evActionProviderUpdate),
+			sdk.NewAttribute(sdk.AttributeKeyAction, evActionProviderUpdated),
 		}, ProviderEVAttributes(ev.Owner)...)...,
 	)
 }
 
-// EventProviderDelete struct
-type EventProviderDelete struct {
-	Owner sdk.AccAddress
+// EventProviderDeleted struct
+type EventProviderDeleted struct {
+	Context sdkutil.BaseModuleEvent `json:"context"`
+	Owner   sdk.AccAddress          `json:"owner"`
 }
 
-// ToSDKEvent method creates new sdk event for EventProviderDelete struct
-func (ev EventProviderDelete) ToSDKEvent() sdk.Event {
+func NewEventProviderDeleted(owner sdk.AccAddress) EventProviderDeleted {
+	return EventProviderDeleted{
+		Context: sdkutil.BaseModuleEvent{
+			Module: ModuleName,
+			Action: evActionProviderDeleted,
+		},
+		Owner: owner,
+	}
+}
+
+// ToSDKEvent method creates new sdk event for EventProviderDeleted struct
+func (ev EventProviderDeleted) ToSDKEvent() sdk.Event {
 	return sdk.NewEvent(sdkutil.EventTypeMessage,
 		append([]sdk.Attribute{
 			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
-			sdk.NewAttribute(sdk.AttributeKeyAction, evActionProviderDelete),
+			sdk.NewAttribute(sdk.AttributeKeyAction, evActionProviderDeleted),
 		}, ProviderEVAttributes(ev.Owner)...)...,
 	)
 }
@@ -84,24 +117,24 @@ func ParseEvent(ev sdkutil.Event) (sdkutil.ModuleEvent, error) {
 		return nil, sdkutil.ErrUnknownModule
 	}
 	switch ev.Action {
-	case evActionProviderCreate:
+	case evActionProviderCreated:
 		owner, err := ParseEVProvider(ev.Attributes)
 		if err != nil {
 			return nil, err
 		}
-		return EventProviderCreate{Owner: owner}, nil
-	case evActionProviderUpdate:
+		return NewEventProviderCreated(owner), nil
+	case evActionProviderUpdated:
 		owner, err := ParseEVProvider(ev.Attributes)
 		if err != nil {
 			return nil, err
 		}
-		return EventProviderUpdate{Owner: owner}, nil
-	case evActionProviderDelete:
+		return NewEventProviderUpdated(owner), nil
+	case evActionProviderDeleted:
 		owner, err := ParseEVProvider(ev.Attributes)
 		if err != nil {
 			return nil, err
 		}
-		return EventProviderDelete{Owner: owner}, nil
+		return NewEventProviderDeleted(owner), nil
 	default:
 		return nil, sdkutil.ErrUnknownAction
 	}

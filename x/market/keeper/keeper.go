@@ -62,7 +62,8 @@ func (k Keeper) CreateOrder(ctx sdk.Context, gid dtypes.GroupID, spec dtypes.Gro
 
 	ctx.Logger().Info("created order", "order", order.ID())
 	ctx.EventManager().EmitEvent(
-		types.EventOrderCreated{ID: order.ID()}.ToSDKEvent(),
+		types.NewEventOrderCreated(order.ID()).
+			ToSDKEvent(),
 	)
 	return order, nil
 }
@@ -87,16 +88,15 @@ func (k Keeper) CreateBid(ctx sdk.Context, oid types.OrderID, provider sdk.AccAd
 	store.Set(key, k.cdc.MustMarshalBinaryBare(bid))
 
 	ctx.EventManager().EmitEvent(
-		types.EventBidCreated{
-			ID:    bid.ID(),
-			Price: price,
-		}.ToSDKEvent(),
+		types.NewEventBidCreated(bid.ID(), price).
+			ToSDKEvent(),
 	)
 
 	return bid, nil
 }
 
-// CreateLease creates lease for bid with given bidID
+// CreateLease creates lease for bid with given bidID.
+// Should only be called by the EndBlock handler or unit tests.
 func (k Keeper) CreateLease(ctx sdk.Context, bid types.Bid) {
 	store := ctx.KVStore(k.skey)
 
@@ -105,16 +105,16 @@ func (k Keeper) CreateLease(ctx sdk.Context, bid types.Bid) {
 		State:   types.LeaseActive,
 		Price:   bid.Price,
 	}
-	key := leaseKey(lease.ID())
 
-	// XXX TODO: check not overwrite
+	// create (active) lease in store
+	key := leaseKey(lease.ID())
 	store.Set(key, k.cdc.MustMarshalBinaryBare(lease))
+	k.updateActiveLeaseIndex(store, lease)
+
 	ctx.Logger().Info("created lease", "lease", lease.ID())
 	ctx.EventManager().EmitEvent(
-		types.EventLeaseCreated{
-			ID:    lease.ID(),
-			Price: lease.Price,
-		}.ToSDKEvent(),
+		types.NewEventLeaseCreated(lease.ID(), lease.Price).
+			ToSDKEvent(),
 	)
 }
 
@@ -149,10 +149,8 @@ func (k Keeper) OnBidClosed(ctx sdk.Context, bid types.Bid) {
 	bid.State = types.BidClosed
 	k.updateBid(ctx, bid)
 	ctx.EventManager().EmitEvent(
-		types.EventBidClosed{
-			ID:    bid.ID(),
-			Price: bid.Price,
-		}.ToSDKEvent(),
+		types.NewEventBidClosed(bid.ID(), bid.Price).
+			ToSDKEvent(),
 	)
 }
 
@@ -166,7 +164,8 @@ func (k Keeper) OnOrderClosed(ctx sdk.Context, order types.Order) {
 	order.State = types.OrderClosed
 	k.updateOrder(ctx, order)
 	ctx.EventManager().EmitEvent(
-		types.EventOrderClosed{ID: order.ID()}.ToSDKEvent(),
+		types.NewEventOrderClosed(order.ID()).
+			ToSDKEvent(),
 	)
 }
 
@@ -180,10 +179,8 @@ func (k Keeper) OnInsufficientFunds(ctx sdk.Context, lease types.Lease) {
 	lease.State = types.LeaseInsufficientFunds
 	k.updateLease(ctx, lease)
 	ctx.EventManager().EmitEvent(
-		types.EventLeaseClosed{
-			ID:    lease.ID(),
-			Price: lease.Price,
-		}.ToSDKEvent(),
+		types.NewEventLeaseClosed(lease.ID(), lease.Price).
+			ToSDKEvent(),
 	)
 }
 
@@ -198,10 +195,8 @@ func (k Keeper) OnLeaseClosed(ctx sdk.Context, lease types.Lease) {
 	k.updateLease(ctx, lease)
 	ctx.Logger().Info("closed lease", "lease", lease.ID())
 	ctx.EventManager().EmitEvent(
-		types.EventLeaseClosed{
-			ID:    lease.ID(),
-			Price: lease.Price,
-		}.ToSDKEvent(),
+		types.NewEventLeaseClosed(lease.ID(), lease.Price).
+			ToSDKEvent(),
 	)
 }
 
@@ -326,6 +321,26 @@ func (k Keeper) WithLeases(ctx sdk.Context, fn func(types.Lease) bool) {
 	}
 }
 
+// WithActiveLeases iterates through all leases that were marked as Active
+// and
+func (k Keeper) WithActiveLeases(ctx sdk.Context, fn func(types.Lease) bool) {
+	store := ctx.KVStore(k.skey)
+	iter := sdk.KVStorePrefixIterator(store, leaseActivePrefix)
+	for ; iter.Valid(); iter.Next() {
+		dataKey, err := convertLeaseActiveKey(iter.Key())
+		if err != nil {
+			continue
+		}
+
+		buf := store.Get(dataKey)
+		var val types.Lease
+		k.cdc.MustUnmarshalBinaryBare(buf, &val)
+		if stop := fn(val); stop {
+			break
+		}
+	}
+}
+
 // WithOrdersForGroup iterates all orders of a group in market with given GroupID
 func (k Keeper) WithOrdersForGroup(ctx sdk.Context, id dtypes.GroupID, fn func(types.Order) bool) {
 	store := ctx.KVStore(k.skey)
@@ -368,4 +383,17 @@ func (k Keeper) updateLease(ctx sdk.Context, lease types.Lease) {
 	store := ctx.KVStore(k.skey)
 	key := leaseKey(lease.ID())
 	store.Set(key, k.cdc.MustMarshalBinaryBare(lease))
+	k.updateActiveLeaseIndex(store, lease)
+}
+
+func (k Keeper) updateActiveLeaseIndex(store sdk.KVStore, lease types.Lease) {
+	key := leaseKeyActive(lease.ID())
+
+	switch lease.State {
+	case types.LeaseActive:
+		store.Set(key, []byte{})
+	default:
+		store.Delete(key)
+
+	}
 }

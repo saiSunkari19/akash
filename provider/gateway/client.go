@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
+	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 
 	"github.com/ovrclk/akash/provider"
 	"github.com/ovrclk/akash/provider/cluster"
@@ -26,6 +30,16 @@ type Client interface {
 	SubmitManifest(ctx context.Context, host string, req *manifest.SubmitRequest) error
 	LeaseStatus(ctx context.Context, host string, id mtypes.LeaseID) (*cluster.LeaseStatus, error)
 	ServiceStatus(ctx context.Context, host string, id mtypes.LeaseID, service string) (*cluster.ServiceStatus, error)
+	ServiceLogs(ctx context.Context, host string, id mtypes.LeaseID, service string, follow bool, tailLines int64) (*ServiceLogs, error)
+}
+
+type ServiceLogMessage struct {
+	Name    string `json:"name"`
+	Message string `json:"message"`
+}
+
+type ServiceLogs struct {
+	Stream <-chan ServiceLogMessage
 }
 
 // NewClient returns a new Client
@@ -78,7 +92,7 @@ func (c *client) SubmitManifest(ctx context.Context, host string, mreq *manifest
 	if err != nil {
 		return err
 	}
-	io.Copy(ioutil.Discard, resp.Body)
+	_, _ = io.Copy(ioutil.Discard, resp.Body)
 	if err := resp.Body.Close(); err != nil {
 		return err
 	}
@@ -120,18 +134,22 @@ func (c *client) ServiceStatus(ctx context.Context, host string, id mtypes.Lease
 
 func (c *client) getStatus(ctx context.Context, uri string, obj interface{}) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", uri, nil)
-	req.Header.Set("Content-Type", contentTypeJSON)
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", contentTypeJSON)
 
 	resp, err := c.hclient.Do(req)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
 	if resp.StatusCode != http.StatusOK {
-		io.Copy(ioutil.Discard, resp.Body)
+		_, _ = io.Copy(ioutil.Discard, resp.Body)
 		return fmt.Errorf("%w: %v", ErrServerResponse, resp.Status)
 	}
 
@@ -144,5 +162,81 @@ func makeURI(host string, path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return endpoint.String(), nil
+}
+
+func (c *client) ServiceLogs(ctx context.Context,
+	host string,
+	id mtypes.LeaseID,
+	service string,
+	follow bool,
+	tailLines int64) (*ServiceLogs, error) {
+
+	endpoint, err := url.Parse(host + "/" + serviceLogsPath(id, service))
+	if err != nil {
+		return nil, err
+	}
+
+	switch endpoint.Scheme {
+	case "ws", "http", "":
+		endpoint.Scheme = "ws"
+	case "wss", "https":
+		endpoint.Scheme = "wss"
+	default:
+		return nil, errors.Errorf("invalid uri scheme \"%s\"", endpoint.Scheme)
+	}
+
+	query := url.Values{}
+
+	query.Set("follow", strconv.FormatBool(follow))
+	query.Set("tail", strconv.FormatInt(tailLines, 10))
+
+	endpoint.RawQuery = query.Encode()
+
+	conn, _, err := websocket.DefaultDialer.DialContext(ctx, endpoint.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// todo (#732) check status
+
+	streamch := make(chan ServiceLogMessage)
+	logs := &ServiceLogs{
+		Stream: streamch,
+	}
+
+	go func(conn *websocket.Conn) {
+		defer func() {
+			close(streamch)
+			_ = conn.Close()
+		}()
+
+		for {
+			_ = conn.SetReadDeadline(time.Now().Add(pingWait))
+			mType, msg, e := conn.ReadMessage()
+			if e != nil {
+				return
+			}
+
+			switch mType {
+			case websocket.PingMessage:
+				if e = conn.WriteMessage(websocket.PongMessage, []byte{}); e != nil {
+					return
+				}
+			case websocket.TextMessage:
+				var logLine ServiceLogMessage
+				if e = json.Unmarshal(msg, &logLine); e != nil {
+					return
+				}
+
+				streamch <- logLine
+			case websocket.CloseMessage:
+				return
+			default:
+			}
+		}
+	}(conn)
+
+	return logs, nil
 }
