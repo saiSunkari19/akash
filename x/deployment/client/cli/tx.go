@@ -70,8 +70,6 @@ func cmdCreate(key string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 			
-			fmt.Println("MSG Count ", seq, msgCount)
-
 			for i := seq; i <= seq+uint64(msgCount); i++ {
 				id, err := DeploymentIDFromFlags(cmd.Flags(), ctx.GetFromAddress().String())
 				if err != nil {
@@ -84,7 +82,6 @@ func cmdCreate(key string, cdc *codec.Codec) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				
 				
 				id.DSeq = acc.GetSequence() + uint64(i)
 				msg := types.MsgCreateDeployment{
@@ -133,13 +130,10 @@ func QueryLastDeploymentID(ctx context.CLIContext) (uint64, error) {
 		return 0, nil
 	}
 	
-	fmt.Println("ToTal Deployments", len(deployments))
-	
 	sort.Slice(deployments, func(i, j int) bool {
 		return deployments[i].DSeq < deployments[j].DSeq
 	})
 	
-	fmt.Println("TOTAL DEPLOYMENTS", len(deployments))
 	return deployments[len(deployments)-1].DSeq, nil
 }
 
@@ -204,7 +198,7 @@ func cmdGroupClose(_ string, cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-
+			
 			msg := types.MsgCloseGroup{
 				ID: id,
 			}
@@ -212,12 +206,12 @@ func cmdGroupClose(_ string, cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-
+			
 			return utils.GenerateOrBroadcastMsgs(ctx, bldr, []sdk.Msg{msg})
 		},
 	}
 	AddGroupIDFlags(cmd.Flags())
 	MarkReqGroupIDFlags(cmd)
-
+	
 	return cmd
 }
